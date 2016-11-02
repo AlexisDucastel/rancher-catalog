@@ -1,0 +1,44 @@
+zabbix-db:
+  environment:
+    MARIADB_USER: zabbix
+    MARIADB_PASS: PUT_PASSWORD_HERE
+    DB_innodb_buffer_pool_size: 768M
+  labels:
+    io.rancher.sidekicks: zabbix-db-data
+  image: monitoringartist/zabbix-db-mariadb:latest
+  volumes_from:
+  - zabbix-db-data
+
+zabbix-lb:
+  ports:
+  - 80:80
+  tty: true
+  image: rancher/load-balancer-service
+  links:
+  - zabbix-server:zabbix-server
+  stdin_open: true
+
+zabbix-db-data:
+  labels:
+    io.rancher.container.start_once: 'true'
+  command:
+  - /bin/true
+  image: busybox
+  volumes:
+  - /var/lib/mysql
+
+zabbix-server:
+  ports:
+  - 10051:10051/tcp
+  environment:
+    ZS_DBHost: maria-db
+    ZS_DBName: zabbix
+    ZS_DBPassword: PUT_PASSWORD_HERE
+    ZS_DBUser: zabbix
+  labels:
+    io.rancher.container.pull_image: always
+  image: monitoringartist/zabbix-3.0-xxl:3.0.4
+  links:
+  - zabbix-db:maria-db
+  volumes:
+  - /etc/localtime:/etc/localtime:ro
